@@ -1,0 +1,1186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Password Reset | Account Protection</title>
+    <style>
+        :root {
+            --primary: #4361ee;
+            --success: #4cc9f0;
+            --warning: #f72585;
+            --dark: #212529;
+            --light: #f8f9fa;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            transition: background 0.5s;
+        }
+        
+        body.error-screen {
+            background: #000;
+            color: white;
+        }
+        
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            position: relative;
+            transition: transform 0.3s;
+        }
+        
+        .header {
+            background: var(--dark);
+            color: white;
+            padding: 25px;
+            text-align: center;
+            position: relative;
+        }
+        
+        .header h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+        
+        .security-badge {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--success);
+            color: white;
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: bold;
+        }
+        
+        .content {
+            padding: 30px;
+        }
+        
+        .step {
+            display: none;
+        }
+        
+        .step.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: all 0.3s;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(67, 97, 238, 0.2);
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        button:hover {
+            background: #3a56d4;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        .message {
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+        
+        .message.error {
+            background: rgba(247, 37, 133, 0.1);
+            border-left: 4px solid var(--warning);
+            color: #b71540;
+            display: block;
+        }
+        
+        .message.success {
+            background: rgba(76, 201, 240, 0.1);
+            border-left: 4px solid var(--success);
+            color: #1e6fa3;
+            display: block;
+        }
+        
+        .message.warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 4px solid #ffc107;
+            color: #856404;
+            display: block;
+        }
+        
+        .password-rules {
+            font-size: 0.85rem;
+            color: #666;
+            margin-top: 5px;
+            min-height: 40px;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(67, 97, 238, 0.2);
+            border-radius: 50%;
+            border-top: 4px solid var(--primary);
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 30px;
+        }
+        
+        .step-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ddd;
+            margin: 0 8px;
+            transition: all 0.3s;
+        }
+        
+        .step-dot.active {
+            background: var(--primary);
+            transform: scale(1.2);
+        }
+        
+        .back-link {
+            text-align: center;
+            margin-top: 20px;
+        }
+        
+        .back-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.9rem;
+        }
+        
+        .chaos-indicator {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.7rem;
+            opacity: 0;
+            transition: opacity 0.5s;
+        }
+        
+        .help-trigger {
+            position: absolute;
+            bottom: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        
+        .error-log-trigger {
+            position: absolute;
+            bottom: 50px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+        
+        .help-modal, .error-log-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        
+        .help-modal.active, .error-log-modal.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .help-content, .error-log-content {
+            background: white;
+            width: 90%;
+            max-width: 600px;
+            border-radius: 12px;
+            padding: 25px;
+            position: relative;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close-help, .close-error-log {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #999;
+        }
+        
+        .glitch {
+            position: relative;
+        }
+        
+        .glitch::before, .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .glitch::before {
+            left: 2px;
+            text-shadow: -2px 0 #ff00ff;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim 5s infinite linear alternate-reverse;
+        }
+        
+        .glitch::after {
+            left: -2px;
+            text-shadow: -2px 0 #00ffff;
+            clip: rect(44px, 450px, 56px, 0);
+            animation: glitch-anim2 5s infinite linear alternate-reverse;
+        }
+        
+        @keyframes glitch-anim {
+            0% { clip: rect(42px, 9999px, 44px, 0); }
+            5% { clip: rect(12px, 9999px, 59px, 0); }
+            10% { clip: rect(48px, 9999px, 29px, 0); }
+            15% { clip: rect(42px, 9999px, 73px, 0); }
+            20% { clip: rect(63px, 9999px, 27px, 0); }
+            25% { clip: rect(34px, 9999px, 55px, 0); }
+            30% { clip: rect(86px, 9999px, 73px, 0); }
+            35% { clip: rect(20px, 9999px, 20px, 0); }
+            40% { clip: rect(26px, 9999px, 60px, 0); }
+            45% { clip: rect(25px, 9999px, 66px, 0); }
+            50% { clip: rect(57px, 9999px, 98px, 0); }
+            55% { clip: rect(5px, 9999px, 46px, 0); }
+            60% { clip: rect(82px, 9999px, 31px, 0); }
+            65% { clip: rect(54px, 9999px, 27px, 0); }
+            70% { clip: rect(28px, 9999px, 99px, 0); }
+            75% { clip: rect(45px, 9999px, 69px, 0); }
+            80% { clip: rect(23px, 9999px, 85px, 0); }
+            85% { clip: rect(54px, 9999px, 84px, 0); }
+            90% { clip: rect(45px, 9999px, 47px, 0); }
+            95% { clip: rect(37px, 9999px, 20px, 0); }
+            100% { clip: rect(4px, 9999px, 91px, 0); }
+        }
+        
+        @keyframes glitch-anim2 {
+            0% { clip: rect(65px, 9999px, 100px, 0); }
+            5% { clip: rect(52px, 9999px, 74px, 0); }
+            10% { clip: rect(79px, 9999px, 85px, 0); }
+            15% { clip: rect(75px, 9999px, 5px, 0); }
+            20% { clip: rect(67px, 9999px, 61px, 0); }
+            25% { clip: rect(14px, 9999px, 79px, 0); }
+            30% { clip: rect(1px, 9999px, 66px, 0); }
+            35% { clip: rect(86px, 9999px, 30px, 0); }
+            40% { clip: rect(23px, 9999px, 98px, 0); }
+            45% { clip: rect(85px, 9999px, 72px, 0); }
+            50% { clip: rect(71px, 9999px, 75px, 0); }
+            55% { clip: rect(2px, 9999px, 48px, 0); }
+            60% { clip: rect(30px, 9999px, 16px, 0); }
+            65% { clip: rect(59px, 9999px, 50px, 0); }
+            70% { clip: rect(41px, 9999px, 62px, 0); }
+            75% { clip: rect(2px, 9999px, 82px, 0); }
+            80% { clip: rect(47px, 9999px, 73px, 0); }
+            85% { clip: rect(3px, 9999px, 27px, 0); }
+            90% { clip: rect(26px, 9999px, 55px, 0); }
+            95% { clip: rect(42px, 9999px, 97px, 0); }
+            100% { clip: rect(38px, 9999px, 49px, 0); }
+        }
+        
+        .shake {
+            animation: shake 0.5s;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+        
+        .log-entry {
+            padding: 10px;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+        }
+        
+        .log-entry.error {
+            background: rgba(247, 37, 133, 0.1);
+            border-left: 3px solid var(--warning);
+        }
+        
+        .log-entry.success {
+            background: rgba(76, 201, 240, 0.1);
+            border-left: 3px solid var(--success);
+        }
+        
+        .log-entry.warning {
+            background: rgba(255, 193, 7, 0.1);
+            border-left: 3px solid #ffc107;
+        }
+        
+        .log-entry.info {
+            background: rgba(67, 97, 238, 0.1);
+            border-left: 3px solid var(--primary);
+        }
+        
+        .log-entry.debug {
+            background: rgba(108, 117, 125, 0.1);
+            border-left: 3px solid #6c757d;
+            color: #6c757d;
+        }
+        
+        .log-timestamp {
+            font-weight: bold;
+            margin-right: 10px;
+        }
+        
+        .error-log-title {
+            margin-bottom: 15px;
+            color: var(--dark);
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .error-screen {
+            display: none;
+            text-align: center;
+            padding: 50px 20px;
+        }
+        
+        .error-screen h1 {
+            font-size: 6rem;
+            color: #ff0000;
+            margin-bottom: 20px;
+        }
+        
+        .error-screen p {
+            font-size: 1.2rem;
+            margin-bottom: 30px;
+        }
+        
+        .password-validation {
+            margin-top: 10px;
+            font-size: 0.8rem;
+            min-height: 60px;
+        }
+        
+        .validation-message {
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 5px;
+            display: none;
+        }
+        
+        .validation-message.error {
+            background: rgba(247, 37, 133, 0.1);
+            border-left: 3px solid var(--warning);
+            color: #b71540;
+            display: block;
+        }
+        
+        @media (max-width: 500px) {
+            .content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="security-badge">SECURE</div>
+            <h1>Password Reset</h1>
+            <p>Secure your account in just a few steps</p>
+        </div>
+        
+        <div class="content">
+            <div class="step-indicator">
+                <div class="step-dot active"></div>
+                <div class="step-dot"></div>
+                <div class="step-dot"></div>
+            </div>
+            
+            <div id="step1" class="step active">
+                <div class="form-group">
+                    <label for="email">Email Address</label>
+                    <input type="email" id="email" placeholder="Enter your email address">
+                </div>
+                <button id="requestReset">Send Reset Code</button>
+                <div class="back-link">
+                    <a href="#">Back to Login</a>
+                </div>
+            </div>
+            
+            <div id="step2" class="step">
+                <div class="form-group">
+                    <label for="resetCode">Verification Code</label>
+                    <input type="text" id="resetCode" placeholder="Enter the 6-digit code">
+                </div>
+                <div class="form-group">
+                    <label for="newPassword">New Password</label>
+                    <input type="password" id="newPassword" placeholder="Create a new password">
+                    <div class="password-rules">
+                        Password rules change dynamically for security
+                    </div>
+                    <div class="password-validation" id="passwordValidation"></div>
+                </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password</label>
+                    <input type="password" id="confirmPassword" placeholder="Confirm your new password">
+                </div>
+                <button id="resetPassword">Reset Password</button>
+                <div class="back-link">
+                    <a href="#" id="backToStep1">Back to Email Entry</a>
+                </div>
+            </div>
+            
+            <div id="step3" class="step">
+                <div class="message success">
+                    <strong>Success!</strong> Your password has been reset successfully.
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">New Password</label>
+                    <input type="password" id="loginPassword" placeholder="Enter your new password">
+                </div>
+                <button id="loginButton">Login to Your Account</button>
+                <div class="back-link">
+                    <a href="#">Back to Login Page</a>
+                </div>
+            </div>
+            
+            <div id="messages"></div>
+            
+            <div class="loading">
+                <div class="loading-spinner"></div>
+                <p>Processing your request securely...</p>
+            </div>
+        </div>
+        
+        <div class="chaos-indicator">System Stability: 100%</div>
+        <div class="help-trigger">?</div>
+        <div class="error-log-trigger">!</div>
+    </div>
+    
+    <div class="error-screen" id="errorScreen">
+        <h1>404</h1>
+        <p>Page Not Found</p>
+        <p>The resource you are looking for might have been removed, had its name changed, or is temporarily unavailable.</p>
+        <button id="goBackButton">Go Back</button>
+    </div>
+    
+    <div class="help-modal">
+        <div class="help-content">
+            <span class="close-help">&times;</span>
+            <h2>Password Reset Help</h2>
+            <p>If you're experiencing issues with the password reset system, try these troubleshooting steps:</p>
+            <ul>
+                <li>Ensure you're using a supported browser (Chrome, Firefox, Safari, Edge)</li>
+                <li>Check your spam folder for the reset code email</li>
+                <li>Make sure your password meets all complexity requirements</li>
+                <li>Try again in a few minutes if the system seems unresponsive</li>
+                <li>Contact support if problems persist</li>
+            </ul>
+            <p class="password-rules" style="margin-top: 15px;">Note: For security reasons, password reset codes expire after 10 minutes.</p>
+        </div>
+    </div>
+    
+    <div class="error-log-modal">
+        <div class="error-log-content">
+            <span class="close-error-log">&times;</span>
+            <h2 class="error-log-title">System Error Log</h2>
+            <div id="errorLogEntries"></div>
+        </div>
+    </div>
+
+    <script>
+        // State management
+        const state = {
+            currentStep: 1,
+            failedAttempts: 0,
+            requestCount: 0,
+            lastSubmitTime: 0,
+            emailSent: false,
+            resetSuccessful: false,
+            chaosLevel: 0,
+            logEntries: [],
+            passwordAttempts: 0,
+            currentPasswordRule: 0
+        };
+
+        // DOM elements
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const stepDots = document.querySelectorAll('.step-dot');
+        const messagesContainer = document.getElementById('messages');
+        const emailInput = document.getElementById('email');
+        const resetCodeInput = document.getElementById('resetCode');
+        const newPasswordInput = document.getElementById('newPassword');
+        const confirmPasswordInput = document.getElementById('confirmPassword');
+        const requestResetBtn = document.getElementById('requestReset');
+        const resetPasswordBtn = document.getElementById('resetPassword');
+        const backToStep1 = document.getElementById('backToStep1');
+        const loadingElement = document.querySelector('.loading');
+        const chaosIndicator = document.querySelector('.chaos-indicator');
+        const helpTrigger = document.querySelector('.help-trigger');
+        const helpModal = document.querySelector('.help-modal');
+        const closeHelp = document.querySelector('.close-help');
+        const errorLogTrigger = document.querySelector('.error-log-trigger');
+        const errorLogModal = document.querySelector('.error-log-modal');
+        const closeErrorLog = document.querySelector('.close-error-log');
+        const errorLogEntries = document.getElementById('errorLogEntries');
+        const passwordValidation = document.getElementById('passwordValidation');
+        const errorScreen = document.getElementById('errorScreen');
+        const goBackButton = document.getElementById('goBackButton');
+
+        // Error messages
+        const errorMessages = [
+            "Network connection lost. Please check your internet and try again.",
+            "Invalid verification code. Please check and try again.",
+            "Password doesn't meet security requirements. Please try a different password.",
+            "Reset code has expired. Please request a new one.",
+            "Server is temporarily unavailable. Please try again in a few minutes.",
+            "Too many attempts. Please wait 5 minutes before trying again.",
+            "Email address not found in our system.",
+            "Session timed out. Please start the reset process again.",
+            "Unknown error occurred. Please try again later."
+        ];
+
+        // Password validation rules (insane rules)
+        const passwordRules = [
+            {
+                name: "Letters only",
+                validate: (pwd) => /^[a-zA-Z]+$/.test(pwd),
+                error: "Password must contain ONLY letters (no numbers or special characters)"
+            },
+            {
+                name: "Numbers only",
+                validate: (pwd) => /^[0-9]+$/.test(pwd),
+                error: "Password must contain ONLY numbers (no letters or special characters)"
+            },
+            {
+                name: "No letters or numbers together",
+                validate: (pwd) => !(/[a-zA-Z]/.test(pwd) && /[0-9]/.test(pwd)),
+                error: "Password cannot contain both letters AND numbers together"
+            },
+            {
+                name: "Exactly 5 characters",
+                validate: (pwd) => pwd.length === 5,
+                error: "Password must be EXACTLY 5 characters long"
+            },
+            {
+                name: "No repeating characters",
+                validate: (pwd) => !/(.)\1/.test(pwd),
+                error: "Password cannot contain repeating characters (e.g. 'aa', '11')"
+            },
+            {
+                name: "Only uppercase letters",
+                validate: (pwd) => /^[A-Z]+$/.test(pwd),
+                error: "Password must contain ONLY uppercase letters"
+            },
+            {
+                name: "Only lowercase letters",
+                validate: (pwd) => /^[a-z]+$/.test(pwd),
+                error: "Password must contain ONLY lowercase letters"
+            },
+            {
+                name: "Palindrome required",
+                validate: (pwd) => {
+                    const clean = pwd.toLowerCase().replace(/[^a-z0-9]/g, '');
+                    return clean === clean.split('').reverse().join('');
+                },
+                error: "Password must be a palindrome (reads the same forwards and backwards)"
+            },
+            {
+                name: "No vowels allowed",
+                validate: (pwd) => !/[aeiouAEIOU]/.test(pwd),
+                error: "Password cannot contain any vowels (a, e, i, o, u)"
+            },
+            {
+                name: "Only vowels allowed",
+                validate: (pwd) => /^[aeiouAEIOU]+$/.test(pwd),
+                error: "Password must contain ONLY vowels (a, e, i, o, u)"
+            },
+            {
+                name: "Must contain today's weekday",
+                validate: (pwd) => {
+                    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    const today = days[new Date().getDay()];
+                    return pwd.toLowerCase().includes(today);
+                },
+                error: `Password must contain today's weekday (${new Date().toLocaleDateString('en', {weekday: 'long'}).toLowerCase()})`
+            },
+            {
+                name: "Sum of digits must be prime",
+                validate: (pwd) => {
+                    const digits = pwd.match(/\d/g);
+                    if (!digits) return false;
+                    const sum = digits.reduce((a, b) => a + parseInt(b), 0);
+                    if (sum < 2) return false;
+                    for (let i = 2; i <= Math.sqrt(sum); i++) {
+                        if (sum % i === 0) return false;
+                    }
+                    return true;
+                },
+                error: "The sum of all digits in your password must be a prime number"
+            }
+        ];
+
+        // Initialize
+        function init() {
+            requestResetBtn.addEventListener('click', handleResetRequest);
+            resetPasswordBtn.addEventListener('click', handlePasswordReset);
+            backToStep1.addEventListener('click', goBackToStep1);
+            helpTrigger.addEventListener('click', showHelp);
+            closeHelp.addEventListener('click', hideHelp);
+            errorLogTrigger.addEventListener('click', showErrorLog);
+            closeErrorLog.addEventListener('click', hideErrorLog);
+            goBackButton.addEventListener('click', hideErrorScreen);
+            newPasswordInput.addEventListener('input', validatePassword);
+            
+            // Add subtle chaos triggers
+            emailInput.addEventListener('focus', increaseChaos);
+            resetCodeInput.addEventListener('input', increaseChaos);
+            newPasswordInput.addEventListener('input', increaseChaos);
+            
+            // Add browser-specific behavior
+            detectBrowserAndDevice();
+            
+            // Update chaos indicator
+            updateChaosIndicator();
+            
+            // Add initial log entry
+            addLogEntry("System initialized", "info");
+            
+            // Set initial password rule
+            updatePasswordRule();
+        }
+
+        // Handle reset request
+        function handleResetRequest() {
+            const email = emailInput.value.trim();
+            
+            if (!email) {
+                showMessage("Please enter your email address", "error");
+                addLogEntry("User attempted reset without email", "warning");
+                return;
+            }
+            
+            // Show loading
+            showLoading();
+            
+            state.requestCount++;
+            const now = Date.now();
+            const timeSinceLastSubmit = now - state.lastSubmitTime;
+            state.lastSubmitTime = now;
+            
+            // Race condition simulation (hidden from user)
+            if (timeSinceLastSubmit < 1000 && state.requestCount > 1) {
+                addLogEntry(`Race condition detected: Request #${state.requestCount} submitted too quickly`, "debug");
+                // Randomly decide which request "wins"
+                if (Math.random() > 0.5) {
+                    hideLoading();
+                    addLogEntry("Request cancelled due to race condition", "warning");
+                    return;
+                }
+            }
+            
+            // Increase chaos with each request
+            state.chaosLevel += 10;
+            updateChaosIndicator();
+            
+            // Simulate API call with random outcome
+            setTimeout(() => {
+                hideLoading();
+                
+                // Random errors based on chaos level
+                const errorChance = Math.min(0.3 + (state.chaosLevel / 100), 0.8);
+                
+                if (Math.random() < errorChance) {
+                    const error = errorMessages[Math.floor(Math.random() * errorMessages.length)];
+                    showMessage(error, "error");
+                    addLogEntry(`Reset request failed: ${error}`, "error");
+                    state.failedAttempts++;
+                    
+                    // Apply glitch effect on high chaos
+                    if (state.chaosLevel > 50) {
+                        document.querySelector('.header h1').classList.add('glitch');
+                        addLogEntry("Visual glitch effect triggered", "debug");
+                        setTimeout(() => {
+                            document.querySelector('.header h1').classList.remove('glitch');
+                        }, 2000);
+                    }
+                    
+                    // Temporary fix after 3 failures
+                    if (state.failedAttempts >= 3) {
+                        setTimeout(() => {
+                            showMessage("System recovered. Please try again.", "warning");
+                            addLogEntry(`Temporary system fix applied after ${state.failedAttempts} failures`, "warning");
+                        }, 1500);
+                    }
+                    
+                    return;
+                }
+                
+                // Success path
+                showMessage("Reset code sent to your email", "success");
+                addLogEntry(`Reset code sent to ${email}`, "success");
+                state.emailSent = true;
+                
+                // Simulate out-of-order email
+                const emailDelay = Math.random() * 2000;
+                const resetCode = generateResetCode();
+                setTimeout(() => {
+                    addLogEntry(`Email delivered with code: ${resetCode}`, "info");
+                }, emailDelay);
+                
+                // Move to next step
+                setTimeout(() => {
+                    goToStep(2);
+                }, 1500);
+                
+            }, 1500 + Math.random() * 1000); // Random delay to simulate network
+        }
+
+        // Handle password reset
+        function handlePasswordReset() {
+            const code = resetCodeInput.value.trim();
+            const newPassword = newPasswordInput.value;
+            const confirmPassword = confirmPasswordInput.value;
+            
+            if (!code || !newPassword || !confirmPassword) {
+                showMessage("Please fill in all fields", "error");
+                addLogEntry("User attempted reset with incomplete form", "warning");
+                return;
+            }
+            
+            if (newPassword !== confirmPassword) {
+                showMessage("Passwords don't match", "error");
+                addLogEntry("Password reset failed: Passwords don't match", "error");
+                state.failedAttempts++;
+                state.chaosLevel += 5;
+                updateChaosIndicator();
+                return;
+            }
+            
+            // Validate password against current rule
+            const currentRule = passwordRules[state.currentPasswordRule];
+            if (!currentRule.validate(newPassword)) {
+                showMessage(currentRule.error, "error");
+                addLogEntry(`Password validation failed: ${currentRule.error}`, "error");
+                state.passwordAttempts++;
+                state.chaosLevel += 10;
+                
+                // Change password rule after a few attempts
+                if (state.passwordAttempts >= 2) {
+                    updatePasswordRule();
+                    state.passwordAttempts = 0;
+                }
+                
+                updateChaosIndicator();
+                return;
+            }
+            
+            // Show loading
+            showLoading();
+            
+            // Increase chaos
+            state.chaosLevel += 15;
+            updateChaosIndicator();
+            
+            // Simulate API call with random outcome
+            setTimeout(() => {
+                hideLoading();
+                
+                // Random errors based on chaos level
+                const errorChance = Math.min(0.4 + (state.chaosLevel / 100), 0.9);
+                
+                if (Math.random() < errorChance) {
+                    const error = errorMessages[Math.floor(Math.random() * errorMessages.length)];
+                    showMessage(error, "error");
+                    addLogEntry(`Password reset failed: ${error}`, "error");
+                    state.failedAttempts++;
+                    
+                    // Apply shake effect on error
+                    document.querySelector('.container').classList.add('shake');
+                    addLogEntry("UI shake effect triggered", "debug");
+                    setTimeout(() => {
+                        document.querySelector('.container').classList.remove('shake');
+                    }, 500);
+                    
+                    return;
+                }
+                
+                // Show success but then redirect to 404
+                showMessage("Password reset successful!", "success");
+                addLogEntry("Password reset reported as successful", "success");
+                
+                // Move to final step briefly, then show 404
+                setTimeout(() => {
+                    goToStep(3);
+                    
+                    // After a moment, show the 404 error screen
+                    setTimeout(() => {
+                        showErrorScreen();
+                    }, 2000);
+                }, 1000);
+                
+            }, 1500 + Math.random() * 1000); // Random delay
+        }
+
+        // Validate password against current rule
+        function validatePassword() {
+            const password = newPasswordInput.value;
+            const currentRule = passwordRules[state.currentPasswordRule];
+            
+            passwordValidation.innerHTML = '';
+            
+            if (password.length > 0) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'validation-message error';
+                messageElement.textContent = currentRule.error;
+                passwordValidation.appendChild(messageElement);
+            }
+        }
+
+        // Update password rule (change to a new random rule)
+        function updatePasswordRule() {
+            // Pick a random rule (different from current)
+            let newRuleIndex;
+            do {
+                newRuleIndex = Math.floor(Math.random() * passwordRules.length);
+            } while (newRuleIndex === state.currentPasswordRule && passwordRules.length > 1);
+            
+            state.currentPasswordRule = newRuleIndex;
+            const rulesElement = document.querySelector('.password-rules');
+            rulesElement.textContent = `Current requirement: ${passwordRules[state.currentPasswordRule].name}`;
+            
+            addLogEntry(`Password validation rule changed to: ${passwordRules[state.currentPasswordRule].name}`, "debug");
+            
+            // Clear validation message
+            passwordValidation.innerHTML = '';
+        }
+
+        // Generate a random reset code
+        function generateResetCode() {
+            return Math.random().toString(36).substring(2, 8).toUpperCase();
+        }
+
+        // Show message to user
+        function showMessage(message, type) {
+            // Clear previous messages
+            messagesContainer.innerHTML = '';
+            
+            const messageElement = document.createElement('div');
+            messageElement.className = `message ${type}`;
+            messageElement.innerHTML = message;
+            
+            messagesContainer.appendChild(messageElement);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (messagesContainer.contains(messageElement)) {
+                    messagesContainer.removeChild(messageElement);
+                }
+            }, 5000);
+        }
+
+        // Add log entry
+        function addLogEntry(message, type) {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = {
+                timestamp,
+                message,
+                type
+            };
+            
+            state.logEntries.push(logEntry);
+            
+            // Update error log if it's open
+            updateErrorLog();
+            
+            // Also log to console for debugging
+            console.log(`[${type.toUpperCase()}] ${timestamp}: ${message}`);
+        }
+
+        // Update error log display
+        function updateErrorLog() {
+            errorLogEntries.innerHTML = '';
+            
+            state.logEntries.forEach(entry => {
+                const logElement = document.createElement('div');
+                logElement.className = `log-entry ${entry.type}`;
+                
+                const timestampSpan = document.createElement('span');
+                timestampSpan.className = 'log-timestamp';
+                timestampSpan.textContent = `[${entry.timestamp}]`;
+                
+                const messageSpan = document.createElement('span');
+                messageSpan.textContent = entry.message;
+                
+                logElement.appendChild(timestampSpan);
+                logElement.appendChild(messageSpan);
+                
+                errorLogEntries.appendChild(logElement);
+            });
+            
+            // Scroll to bottom
+            errorLogEntries.scrollTop = errorLogEntries.scrollHeight;
+        }
+
+        // Show 404 error screen
+        function showErrorScreen() {
+            document.querySelector('.container').style.display = 'none';
+            errorScreen.style.display = 'block';
+            document.body.classList.add('error-screen');
+            addLogEntry("User redirected to 404 error page after successful password reset", "error");
+        }
+
+        // Hide 404 error screen
+        function hideErrorScreen() {
+            document.querySelector('.container').style.display = 'block';
+            errorScreen.style.display = 'none';
+            document.body.classList.remove('error-screen');
+            goToStep(1);
+            addLogEntry("User returned from 404 error page", "info");
+        }
+
+        // Navigate to step
+        function goToStep(step) {
+            // Hide all steps
+            step1.classList.remove('active');
+            step2.classList.remove('active');
+            step3.classList.remove('active');
+            
+            // Show target step
+            document.getElementById(`step${step}`).classList.add('active');
+            
+            // Update step indicator
+            stepDots.forEach((dot, index) => {
+                if (index < step) {
+                    dot.classList.add('active');
+                } else {
+                    dot.classList.remove('active');
+                }
+            });
+            
+            state.currentStep = step;
+        }
+
+        // Go back to step 1
+        function goBackToStep1() {
+            goToStep(1);
+        }
+
+        // Show loading indicator
+        function showLoading() {
+            loadingElement.style.display = 'block';
+        }
+
+        // Hide loading indicator
+        function hideLoading() {
+            loadingElement.style.display = 'none';
+        }
+
+        // Increase chaos level
+        function increaseChaos() {
+            if (state.chaosLevel < 100) {
+                state.chaosLevel += 1;
+                updateChaosIndicator();
+            }
+        }
+
+        // Update chaos indicator
+        function updateChaosIndicator() {
+            const stability = 100 - state.chaosLevel;
+            chaosIndicator.textContent = `System Stability: ${stability}%`;
+            
+            // Show indicator when chaos is high
+            if (state.chaosLevel > 30) {
+                chaosIndicator.style.opacity = '1';
+            } else {
+                chaosIndicator.style.opacity = '0';
+            }
+            
+            // Add glitch effects at high chaos
+            if (state.chaosLevel > 70) {
+                if (Math.random() < 0.1) {
+                    document.querySelector('.header h1').classList.add('glitch');
+                    addLogEntry("Visual glitch effect triggered", "debug");
+                    setTimeout(() => {
+                        document.querySelector('.header h1').classList.remove('glitch');
+                    }, 1000);
+                }
+            }
+        }
+
+        // Detect browser and device for specific behaviors
+        function detectBrowserAndDevice() {
+            const userAgent = navigator.userAgent;
+            let browser = "Unknown";
+            
+            if (userAgent.includes("Chrome") && !userAgent.includes("Edg")) {
+                browser = "Chrome";
+            } else if (userAgent.includes("Firefox")) {
+                browser = "Firefox";
+            } else if (userAgent.includes("Safari") && !userAgent.includes("Chrome")) {
+                browser = "Safari";
+            } else if (userAgent.includes("Edg")) {
+                browser = "Edge";
+            }
+            
+            addLogEntry(`Browser detected: ${browser}`, "info");
+            
+            // Mobile detection
+            if (/Mobi|Android/i.test(userAgent)) {
+                addLogEntry("Mobile device detected", "info");
+                
+                // Mobile-specific behavior
+                window.addEventListener('resize', function() {
+                    if (window.innerWidth < 768) {
+                        addLogEntry("Mobile layout activated", "info");
+                    }
+                });
+            }
+        }
+
+        // Show help modal
+        function showHelp() {
+            helpModal.classList.add('active');
+        }
+
+        // Hide help modal
+        function hideHelp() {
+            helpModal.classList.remove('active');
+        }
+
+        // Show error log modal
+        function showErrorLog() {
+            errorLogModal.classList.add('active');
+            updateErrorLog();
+        }
+
+        // Hide error log modal
+        function hideErrorLog() {
+            errorLogModal.classList.remove('active');
+        }
+
+        // Initialize when DOM is loaded
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
